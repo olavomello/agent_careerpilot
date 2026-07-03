@@ -4,7 +4,7 @@
 
 Unlike typical career assistants, CareerPilot AI does not assume a software engineering background. Every evaluation, resume scan, simulated interview question, and training roadmap is compiled dynamically based on the candidate's target job, experience level, and preferred language.
 
-## [Visit - Deployed at Vercel](https://agent-careerpilot-1ghq18qku-olavomellos-projects.vercel.app/)
+[APP - Deployed at Vercel](https://agent-careerpilot.vercel.app/)
 
 ## Key Features
 
