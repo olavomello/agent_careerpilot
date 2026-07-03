@@ -126,11 +126,41 @@ app.post('/api/ai/prompts', (req, res) => {
   });
 });
 
+// Helper: Deterministic demo-mode score derived from the actual resume content.
+// (Real LLM analysis happens client-side in BYOK Live Mode; this heuristic keeps
+// the public demo meaningful instead of returning a random number.)
+function computeHeuristicScore(resumeText, profession, targetJob) {
+  const text = (resumeText || '').toLowerCase();
+  if (text.trim().length === 0) return 40;
+
+  let score = 55;
+
+  // Content depth: reward substance up to a cap
+  score += Math.min(15, Math.floor(text.length / 200));
+
+  // Keyword alignment with profession and target role terms
+  const keywords = `${profession || ''} ${targetJob || ''}`
+    .toLowerCase()
+    .split(/[^a-zà-ú]+/)
+    .filter(word => word.length > 3);
+  const matched = new Set(keywords.filter(word => text.includes(word)));
+  score += Math.min(12, matched.size * 4);
+
+  // Quantified achievements (numbers, %, years) signal outcome-driven writing
+  const metricsCount = (text.match(/\d+%|\d+ (anos|años|years)|\$\d+|r\$\s?\d+/g) || []).length;
+  score += Math.min(8, metricsCount * 2);
+
+  // Structure signals: certifications, tools, portfolio mentions
+  if (/(certif|acls|pmp|aws|figma|github|portfolio|portfólio|portafolio)/.test(text)) score += 5;
+
+  return Math.max(40, Math.min(95, score));
+}
+
 // Route: Resume Optimization Pilot
 app.post('/api/ai/resume-scan', (req, res) => {
   const { profession, seniority, targetJob, resumeText, language } = req.body;
   const lang = language || 'en';
-  const score = Math.floor(Math.random() * 25) + 65; // random realistic score between 65 and 90
+  const score = computeHeuristicScore(resumeText, profession, targetJob);
 
   // Simulate structured output tailored to language & profession
   let strengths = [];

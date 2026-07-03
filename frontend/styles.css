@@ -1074,3 +1074,73 @@ textarea:focus {
 }
 
 
+
+/* ============================================================================
+ * BYOK / AI Mode additions
+ * ========================================================================== */
+
+/* Discreet AI mode badge — top-right of the app header */
+.mode-badge {
+  margin-left: auto;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s ease;
+}
+
+.mode-badge:hover {
+  opacity: 0.8;
+}
+
+.mode-badge.demo {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.mode-badge.live {
+  color: var(--success-color);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Settings tab */
+.settings-card {
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.settings-status {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  min-height: 1.2em;
+}
+
+.settings-status.success {
+  color: var(--success-color);
+}
+
+.settings-status.error {
+  color: var(--danger-color);
+}
+
+@media (max-width: 768px) {
+  .mode-badge {
+    font-size: 0.62rem;
+    padding: 3px 8px;
+  }
+}

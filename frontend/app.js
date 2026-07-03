@@ -5,8 +5,19 @@ let appState = {
   seniority: 'Mid-level',
   targetJob: 'Senior Architect',
   activeTab: 'resume-tab',
-  interviewChatIndex: 0
+  interviewChatIndex: 0,
+  // BYOK (Bring Your Own Key) — session-only, never sent to this app's server
+  apiKey: sessionStorage.getItem('cp_anthropic_key') || '',
+  model: sessionStorage.getItem('cp_anthropic_model') || 'claude-sonnet-4-6',
+  prompts: null,              // last compiled prompts fetched from /api/ai/prompts
+  interviewMessages: []       // live-mode multi-turn history [{role, content}]
 };
+
+const MAX_INTERVIEW_ANSWERS = 4; // live mode: evaluation report after N candidate answers
+
+function isLiveMode() {
+  return !!appState.apiKey;
+}
 
 // UI Localization Dictionaries
 const LOCALIZATION = {
@@ -60,6 +71,23 @@ const LOCALIZATION = {
     
     lblUploadText: "Drag & drop your resume file here or click to browse",
     lblUploadFormats: "Supports PDF, DOCX, TXT, JSON",
+
+    tabSettings: "Settings",
+    titleSettings: "Settings",
+    descSettings: "Manage your session data. Bring Your Own Key (BYOK): calls go straight from your browser to Anthropic.",
+    lblAiConnection: "AI Connection (BYOK)",
+    lblApiKeyHint: "Your key is kept only in this browser session (sessionStorage) and is sent directly to the Anthropic API. It never touches this application's server and is discarded when the tab closes.",
+    lblApiKey: "Anthropic API Key",
+    lblModel: "Model",
+    btnSaveSettings: "Save",
+    btnClearKey: "Clear session key",
+    statusKeySaved: "Key saved for this session. Live AI mode enabled.",
+    statusKeyCleared: "Session key removed. Running in Demo Mode.",
+    statusKeyInvalid: "This does not look like a valid Anthropic key (expected prefix: sk-ant-).",
+    badgeDemo: "Demo Mode",
+    badgeLive: "Live AI",
+    aiError: "AI request failed. Check your API key and credits in Settings.",
+    lblExtracting: "Extracting text from",
     welcomeMessage: "Hi there! Glad you could make it. Tell me a bit about your profile and why you are interested in this position.",
     defaultTargetJobs: {
       "Software Engineer": "Senior Architect",
@@ -119,6 +147,23 @@ const LOCALIZATION = {
     
     lblUploadText: "Arraste e solte o arquivo do currículo ou clique para buscar",
     lblUploadFormats: "Suporta PDF, DOCX, TXT, JSON",
+
+    tabSettings: "Configurações",
+    titleSettings: "Configurações",
+    descSettings: "Gerencie seus dados de sessão. BYOK (Bring Your Own Key): as chamadas vão direto do seu navegador para a Anthropic.",
+    lblAiConnection: "Conexão AI (BYOK)",
+    lblApiKeyHint: "Sua chave fica apenas nesta sessão do navegador (sessionStorage) e é enviada diretamente à API da Anthropic. Ela nunca passa pelo servidor desta aplicação e é descartada ao fechar a aba.",
+    lblApiKey: "Chave da API Anthropic",
+    lblModel: "Modelo",
+    btnSaveSettings: "Salvar",
+    btnClearKey: "Remover chave da sessão",
+    statusKeySaved: "Chave salva para esta sessão. Modo Live AI ativado.",
+    statusKeyCleared: "Chave removida da sessão. Executando em Demo Mode.",
+    statusKeyInvalid: "Isso não parece uma chave Anthropic válida (prefixo esperado: sk-ant-).",
+    badgeDemo: "Demo Mode",
+    badgeLive: "Live AI",
+    aiError: "Falha na chamada de AI. Verifique sua chave e créditos em Configurações.",
+    lblExtracting: "Extraindo texto de",
     welcomeMessage: "Olá! Seja bem-vindo(a) à nossa conversa. Me conte um pouco sobre sua trajetória profissional e por que você tem interesse nesta vaga.",
     defaultTargetJobs: {
       "Software Engineer": "Arquiteto de Sistemas Sênior",
@@ -178,6 +223,23 @@ const LOCALIZATION = {
     
     lblUploadText: "Arrastre y suelte su archivo de currículum o haga clic para buscar",
     lblUploadFormats: "Soporta PDF, DOCX, TXT, JSON",
+
+    tabSettings: "Configuración",
+    titleSettings: "Configuración",
+    descSettings: "Administre sus datos de sesión. BYOK (Bring Your Own Key): las llamadas van directo de su navegador a Anthropic.",
+    lblAiConnection: "Conexión AI (BYOK)",
+    lblApiKeyHint: "Su clave se guarda solo en esta sesión del navegador (sessionStorage) y se envía directamente a la API de Anthropic. Nunca pasa por el servidor de esta aplicación y se descarta al cerrar la pestaña.",
+    lblApiKey: "Clave API de Anthropic",
+    lblModel: "Modelo",
+    btnSaveSettings: "Guardar",
+    btnClearKey: "Eliminar clave de sesión",
+    statusKeySaved: "Clave guardada para esta sesión. Modo Live AI activado.",
+    statusKeyCleared: "Clave eliminada. Ejecutando en Demo Mode.",
+    statusKeyInvalid: "No parece una clave Anthropic válida (prefijo esperado: sk-ant-).",
+    badgeDemo: "Demo Mode",
+    badgeLive: "Live AI",
+    aiError: "Error en la llamada de AI. Verifique su clave y créditos en Configuración.",
+    lblExtracting: "Extrayendo texto de",
     welcomeMessage: "¡Hola! Bienvenido(a) a la simulación. Cuénteme un poco sobre su trayectoria y por qué le interesa esta vacante.",
     defaultTargetJobs: {
       "Software Engineer": "Arquitecto de Software Senior",
@@ -225,7 +287,19 @@ document.addEventListener("DOMContentLoaded", () => {
   if (savedLang) {
     setLanguage(savedLang);
   }
-  
+
+  // Configure pdf.js worker for client-side PDF text extraction
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+
+  // Restore BYOK session settings into the Settings tab UI
+  if (appState.apiKey) {
+    document.getElementById("input-api-key").value = appState.apiKey;
+  }
+  document.getElementById("select-model").value = appState.model;
+  updateAiModeBadge();
+
   // Set default sample resume
   updateSampleResume();
   updatePromptsInspector();
@@ -243,9 +317,13 @@ function setLanguage(lang) {
   document.getElementById("select-lang").value = lang;
 
   // Translate all UI Elements (Only labels and static text, skipping user input elements)
+  // Dictionary keys are camelCase (e.g. lblPasteResume) while DOM ids are kebab-case
+  // (e.g. lbl-paste-resume), so keys are converted before lookup.
   const translationDict = LOCALIZATION[lang];
-  for (const [id, value] of Object.entries(translationDict)) {
-    const el = document.getElementById(id);
+  for (const [key, value] of Object.entries(translationDict)) {
+    if (typeof value !== 'string') continue; // skip nested objects (defaultTargetJobs)
+    const kebabId = key.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+    const el = document.getElementById(key) || document.getElementById(kebabId);
     if (el) {
       if (el.tagName === 'INPUT' && el.type === 'text') {
         // Skip user-edited input values to protect their typed custom text
@@ -254,6 +332,9 @@ function setLanguage(lang) {
       }
     }
   }
+
+  // Refresh AI mode badge and settings status in the new language
+  updateAiModeBadge();
 
   // Update input placeholders
   document.getElementById("textarea-resume").placeholder = lang === 'pt' ? "Cole seu currículo aqui..." : (lang === 'es' ? "Pegue su currículum aquí..." : "Paste your CV content here...");
@@ -298,7 +379,8 @@ function switchTab(tabId) {
     'resume-tab': 'tab-resume',
     'roadmap-tab': 'tab-roadmap',
     'interview-tab': 'tab-interview',
-    'inspector-tab': 'tab-inspector'
+    'inspector-tab': 'tab-inspector',
+    'settings-tab': 'tab-settings'
   };
   
   document.getElementById(tabMapping[tabId]).classList.add("active");
@@ -512,6 +594,7 @@ async function updatePromptsInspector() {
     
     if (response.ok) {
       const data = await response.json();
+      appState.prompts = data; // reused by Live AI mode (systemPrompt, resumePrompt, roadmapPrompt)
       document.getElementById("prompt-preview-system").textContent = data.systemPrompt;
       document.getElementById("prompt-preview-resume").textContent = data.resumePrompt;
     }
@@ -530,51 +613,76 @@ async function runResumeScan() {
   results.classList.add("hidden");
 
   try {
-    const response = await fetch('/api/ai/resume-scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        profession: appState.profession,
-        seniority: appState.seniority,
-        targetJob: appState.targetJob,
-        resumeText: resumeText,
-        language: appState.language
-      })
-    });
+    let data;
 
-    if (response.ok) {
-      const data = await response.json();
-      
-      // Update Score
-      document.getElementById("resume-score").textContent = data.score;
-      
-      // Update Strengths
-      const strengthsUl = document.getElementById("resume-strengths");
-      strengthsUl.innerHTML = "";
-      data.strengths.forEach(str => {
-        const li = document.createElement("li");
-        li.textContent = str;
-        strengthsUl.appendChild(li);
+    if (isLiveMode()) {
+      // LIVE MODE: real analysis of the actual resume text via the Anthropic API (BYOK)
+      data = await liveResumeScan(resumeText);
+    } else {
+      // DEMO MODE: offline heuristic simulation served by the local backend
+      const response = await fetch('/api/ai/resume-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profession: appState.profession,
+          seniority: appState.seniority,
+          targetJob: appState.targetJob,
+          resumeText: resumeText,
+          language: appState.language
+        })
       });
-
-      // Update Gaps
-      const gapsUl = document.getElementById("resume-gaps");
-      gapsUl.innerHTML = "";
-      data.gaps.forEach(gap => {
-        const li = document.createElement("li");
-        li.textContent = gap;
-        gapsUl.appendChild(li);
-      });
-
-      // Update Recommendation
-      document.getElementById("resume-recommendations").textContent = data.recommendations;
+      if (!response.ok) throw new Error("Demo backend unavailable");
+      data = await response.json();
     }
+
+    renderResumeResults(data);
   } catch (err) {
     console.error("Resume scan error:", err);
+    renderResumeResults({
+      score: "--",
+      strengths: [],
+      gaps: [],
+      recommendations: LOCALIZATION[appState.language].aiError
+    });
   } finally {
     loader.classList.add("hidden");
     results.classList.remove("hidden");
   }
+}
+
+function renderResumeResults(data) {
+  document.getElementById("resume-score").textContent = data.score;
+
+  const strengthsUl = document.getElementById("resume-strengths");
+  strengthsUl.innerHTML = "";
+  (data.strengths || []).forEach(str => {
+    const li = document.createElement("li");
+    li.textContent = str;
+    strengthsUl.appendChild(li);
+  });
+
+  const gapsUl = document.getElementById("resume-gaps");
+  gapsUl.innerHTML = "";
+  (data.gaps || []).forEach(gap => {
+    const li = document.createElement("li");
+    li.textContent = gap;
+    gapsUl.appendChild(li);
+  });
+
+  document.getElementById("resume-recommendations").textContent = data.recommendations || "";
+}
+
+async function liveResumeScan(resumeText) {
+  const prompts = await ensurePrompts();
+  const jsonInstruction = `\n\nRespond ONLY with a valid JSON object, no markdown fences, no preamble, using exactly this shape:\n{"score": <integer 0-100 reflecting genuine keyword/experience alignment with the target role>, "strengths": ["...", "..."], "gaps": ["...", "..."], "recommendations": "..."}\nAll string values must be written in the target language defined above.`;
+
+  const raw = await callAnthropic({
+    system: prompts.resumePrompt + jsonInstruction,
+    messages: [{ role: "user", content: `CANDIDATE RESUME / PROFILE:\n\n${resumeText}` }],
+    maxTokens: 1500
+  });
+
+  return parseJsonResponse(raw);
 }
 
 // 2. ROADMAP PILOT SIMULATION
@@ -586,6 +694,22 @@ async function generateRoadmap() {
   timeline.innerHTML = "";
 
   try {
+    if (isLiveMode()) {
+      // LIVE MODE: roadmap genuinely generated by the LLM for this exact profile
+      const prompts = await ensurePrompts();
+      const jsonInstruction = `\n\nRespond ONLY with a valid JSON object, no markdown fences, no preamble, using exactly this shape:\n{"phases": [{"title": "...", "skills": ["...", "..."], "duration": "..."}]}\nProvide 3 to 5 phases. All string values must be written in the target language defined above.`;
+
+      const raw = await callAnthropic({
+        system: prompts.roadmapPrompt + jsonInstruction,
+        messages: [{ role: "user", content: "Generate the personalized roadmap now." }],
+        maxTokens: 1800
+      });
+
+      const data = parseJsonResponse(raw);
+      renderRoadmapPhases(data.phases || []);
+      return;
+    }
+
     const response = await fetch('/api/ai/roadmap', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -599,43 +723,70 @@ async function generateRoadmap() {
 
     if (response.ok) {
       const data = await response.json();
-      
-      data.phases.forEach((phase, index) => {
-        const phaseDiv = document.createElement("div");
-        phaseDiv.className = "timeline-phase";
-        
-        // Phase skills html list
-        let skillsHtml = "";
-        phase.skills.forEach(skill => {
-          skillsHtml += `<li>${skill}</li>`;
-        });
-
-        phaseDiv.innerHTML = `
-          <div class="phase-number">${index + 1}</div>
-          <div class="phase-content" style="width: 100%">
-            <div class="phase-title-row">
-              <h3>${phase.title}</h3>
-              <span class="phase-duration">${phase.duration}</span>
-            </div>
-            <ul class="phase-skills">
-              ${skillsHtml}
-            </ul>
-          </div>
-        `;
-        timeline.appendChild(phaseDiv);
-      });
+      renderRoadmapPhases(data.phases || []);
     }
   } catch (err) {
     console.error("Roadmap generation error:", err);
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "timeline-empty-state";
+    errorDiv.textContent = LOCALIZATION[appState.language].aiError;
+    timeline.appendChild(errorDiv);
   } finally {
     loader.classList.add("hidden");
   }
 }
 
+// Safe DOM rendering (textContent) — mandatory now that phase data can come from an LLM
+function renderRoadmapPhases(phases) {
+  const timeline = document.getElementById("roadmap-timeline");
+  timeline.innerHTML = "";
+
+  phases.forEach((phase, index) => {
+    const phaseDiv = document.createElement("div");
+    phaseDiv.className = "timeline-phase";
+
+    const numberDiv = document.createElement("div");
+    numberDiv.className = "phase-number";
+    numberDiv.textContent = index + 1;
+
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "phase-content";
+    contentDiv.style.width = "100%";
+
+    const titleRow = document.createElement("div");
+    titleRow.className = "phase-title-row";
+
+    const h3 = document.createElement("h3");
+    h3.textContent = phase.title || "";
+
+    const duration = document.createElement("span");
+    duration.className = "phase-duration";
+    duration.textContent = phase.duration || "";
+
+    titleRow.appendChild(h3);
+    titleRow.appendChild(duration);
+
+    const ul = document.createElement("ul");
+    ul.className = "phase-skills";
+    (phase.skills || []).forEach(skill => {
+      const li = document.createElement("li");
+      li.textContent = skill;
+      ul.appendChild(li);
+    });
+
+    contentDiv.appendChild(titleRow);
+    contentDiv.appendChild(ul);
+    phaseDiv.appendChild(numberDiv);
+    phaseDiv.appendChild(contentDiv);
+    timeline.appendChild(phaseDiv);
+  });
+}
+
 // 3. INTERVIEW PILOT SIMULATION
 function resetInterview() {
   appState.interviewChatIndex = 0;
-  
+  appState.interviewMessages = [];
+
   const chatMessages = document.getElementById("chat-messages");
   chatMessages.innerHTML = "";
 
@@ -648,6 +799,9 @@ function resetInterview() {
   // Send first welcoming message from interviewer in current language
   const greetings = LOCALIZATION[appState.language].welcomeMessage;
   appendMessage("interviewer", greetings);
+
+  // Seed live-mode conversation history with the greeting
+  appState.interviewMessages.push({ role: "assistant", content: greetings });
 }
 
 function appendMessage(sender, text) {
@@ -669,6 +823,11 @@ async function sendChatMessage() {
   // Append Candidate answer
   appendMessage("candidate", text);
   inputEl.value = "";
+
+  if (isLiveMode()) {
+    await sendLiveChatMessage(text);
+    return;
+  }
 
   // Call API for subsequent response
   try {
@@ -766,23 +925,54 @@ function processUploadedFile(file) {
       setUploadError();
     };
     reader.readAsText(file);
+  } else if (file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf") {
+    // Real client-side PDF text extraction (pdf.js) — the actual resume content
+    // replaces the textarea so the analysis runs on real data.
+    extractPdfText(file)
+      .then(text => {
+        document.getElementById("textarea-resume").value = text.trim();
+        setUploadSuccess(file.name);
+      })
+      .catch(err => {
+        console.error("PDF extraction error:", err);
+        setUploadError();
+      });
+  } else if (file.name.toLowerCase().endsWith(".docx")) {
+    // Real client-side DOCX text extraction (mammoth.js)
+    extractDocxText(file)
+      .then(text => {
+        document.getElementById("textarea-resume").value = text.trim();
+        setUploadSuccess(file.name);
+      })
+      .catch(err => {
+        console.error("DOCX extraction error:", err);
+        setUploadError();
+      });
   } else {
-    // Binary formats (PDF, DOCX) require backend/heavy parsing. We simulate premium extraction:
-    setTimeout(() => {
-      let mockProfileText = "";
-
-      // Match mock output dynamically to profession and language
-      const samples = SAMPLE_RESUMES[appState.profession];
-      if (samples) {
-        mockProfileText = `[EXTRACTED FROM ${file.name}]\n\n` + (samples[appState.language] || samples.en);
-      } else {
-        mockProfileText = `[EXTRACTED FROM ${file.name}]\n\nCandidate resume file successfully processed.`;
-      }
-
-      document.getElementById("textarea-resume").value = mockProfileText;
-      setUploadSuccess(file.name);
-    }, 1500);
+    // Legacy .doc and other binary formats are not supported client-side
+    setUploadError();
   }
+}
+
+async function extractPdfText(file) {
+  if (!window.pdfjsLib) throw new Error("pdf.js not loaded");
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  let fullText = "";
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const content = await page.getTextContent();
+    fullText += content.items.map(item => item.str).join(" ") + "\n\n";
+  }
+  return fullText;
+}
+
+async function extractDocxText(file) {
+  if (!window.mammoth) throw new Error("mammoth.js not loaded");
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value;
 }
 
 function setUploadSuccess(fileName) {
@@ -800,3 +990,164 @@ function setUploadError() {
   uploadText.textContent = appState.language === 'pt' ? "Erro ao ler arquivo." : (appState.language === 'es' ? "Error al leer el archivo." : "Error reading file.");
 }
 
+
+/* ============================================================================
+ * BYOK — Bring Your Own Key (Live AI Mode)
+ * The user's Anthropic API key lives ONLY in sessionStorage and is sent
+ * directly from the browser to api.anthropic.com. It never reaches this
+ * application's backend, keeping the public deployment token-free.
+ * ========================================================================== */
+
+// Direct browser -> Anthropic API call
+async function callAnthropic({ system, messages, maxTokens = 1024 }) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": appState.apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: appState.model,
+      max_tokens: maxTokens,
+      system: system,
+      messages: messages
+    })
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => "");
+    throw new Error(`Anthropic API ${response.status}: ${errBody}`);
+  }
+
+  const data = await response.json();
+  return (data.content || [])
+    .filter(block => block.type === "text")
+    .map(block => block.text)
+    .join("\n");
+}
+
+// Parse LLM JSON output defensively (strips accidental markdown fences)
+function parseJsonResponse(raw) {
+  const clean = raw.replace(/```json|```/g, "").trim();
+  const start = clean.indexOf("{");
+  const end = clean.lastIndexOf("}");
+  if (start === -1 || end === -1) throw new Error("No JSON object in AI response");
+  return JSON.parse(clean.substring(start, end + 1));
+}
+
+// Guarantees compiled prompts are available (fetches from backend if stale)
+async function ensurePrompts() {
+  if (!appState.prompts) {
+    await updatePromptsInspector();
+  }
+  if (!appState.prompts) throw new Error("Prompt compilation unavailable");
+  return appState.prompts;
+}
+
+// LIVE MODE interview: genuine multi-turn conversation with the LLM interviewer
+async function sendLiveChatMessage(text) {
+  appState.interviewMessages.push({ role: "user", content: text });
+  appState.interviewChatIndex += 1;
+
+  try {
+    const prompts = await ensurePrompts();
+
+    // After MAX_INTERVIEW_ANSWERS candidate answers, request the final evaluation
+    if (appState.interviewChatIndex >= MAX_INTERVIEW_ANSWERS) {
+      const evalInstruction = `\n\nThe interview is now over. Evaluate the candidate's performance across ALL of their answers. Respond ONLY with a valid JSON object, no markdown fences, no preamble, using exactly this shape:\n{"feedback": "<constructive coaching feedback in the target language>", "score": <integer 0-100>}`;
+
+      const raw = await callAnthropic({
+        system: prompts.systemPrompt + evalInstruction,
+        messages: appState.interviewMessages,
+        maxTokens: 1000
+      });
+
+      const evaluation = parseJsonResponse(raw);
+      appendMessage("interviewer", evaluation.feedback);
+
+      document.getElementById("interview-feedback-placeholder").classList.add("hidden");
+      document.getElementById("interview-feedback-report").classList.remove("hidden");
+      document.getElementById("interview-score").textContent = evaluation.score;
+      document.getElementById("interview-feedback-text").textContent = evaluation.feedback;
+      return;
+    }
+
+    // Regular turn: next contextual question grounded in the candidate's answer
+    const reply = await callAnthropic({
+      system: prompts.systemPrompt,
+      messages: appState.interviewMessages,
+      maxTokens: 500
+    });
+
+    appState.interviewMessages.push({ role: "assistant", content: reply });
+    appendMessage("interviewer", reply);
+  } catch (err) {
+    console.error("Live interview error:", err);
+    appendMessage("interviewer", LOCALIZATION[appState.language].aiError);
+  }
+}
+
+/* ------------------------------ Settings tab ----------------------------- */
+
+function saveAiSettings() {
+  const keyInput = document.getElementById("input-api-key");
+  const statusEl = document.getElementById("settings-status");
+  const dict = LOCALIZATION[appState.language];
+
+  const key = keyInput.value.trim();
+  const model = document.getElementById("select-model").value;
+
+  if (key && !key.startsWith("sk-ant-")) {
+    statusEl.textContent = dict.statusKeyInvalid;
+    statusEl.className = "settings-status error";
+    return;
+  }
+
+  appState.apiKey = key;
+  appState.model = model;
+
+  if (key) {
+    sessionStorage.setItem("cp_anthropic_key", key);
+    sessionStorage.setItem("cp_anthropic_model", model);
+    statusEl.textContent = dict.statusKeySaved;
+    statusEl.className = "settings-status success";
+  } else {
+    sessionStorage.removeItem("cp_anthropic_key");
+    statusEl.textContent = dict.statusKeyCleared;
+    statusEl.className = "settings-status";
+  }
+
+  updateAiModeBadge();
+}
+
+function clearAiSettings() {
+  appState.apiKey = "";
+  sessionStorage.removeItem("cp_anthropic_key");
+  document.getElementById("input-api-key").value = "";
+
+  const dict = LOCALIZATION[appState.language];
+  const statusEl = document.getElementById("settings-status");
+  statusEl.textContent = dict.statusKeyCleared;
+  statusEl.className = "settings-status";
+
+  updateAiModeBadge();
+}
+
+// Discreet top-right indicator: "Demo Mode" when no key, "Live AI" when set
+function updateAiModeBadge() {
+  const badge = document.getElementById("ai-mode-badge");
+  if (!badge) return;
+
+  const dict = LOCALIZATION[appState.language];
+
+  badge.classList.remove("hidden", "demo", "live");
+  if (isLiveMode()) {
+    badge.textContent = dict.badgeLive;
+    badge.classList.add("live");
+  } else {
+    badge.textContent = dict.badgeDemo;
+    badge.classList.add("demo");
+  }
+}
