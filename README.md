@@ -4,7 +4,7 @@
 
 Unlike typical career assistants, CareerPilot AI does not assume a software engineering background. Every evaluation, resume scan, simulated interview question, and training roadmap is compiled dynamically based on the candidate's target job, experience level, and preferred language.
 
----
+## [Visit - Deployed at Vercel](https://agent-careerpilot-1ghq18qku-olavomellos-projects.vercel.app/)
 
 ## Key Features
 
@@ -53,7 +53,9 @@ The backend uses a localized system instruction taxonomy (`backend/services/ai.s
 - **Nurse / Healthcare**: Injects clinical triage terms (e.g., Care Plan, Contraindication) and forces a "Clinical Case Scenario" roleplay.
 
 ### Prompt Translation Constraint
+
 When generating system prompts, the target language selection is compiled into the system instructions:
+
 ```text
 Language constraint: You MUST ask questions and provide feedback in {language}. Do not use any other language.
 ```
@@ -65,13 +67,17 @@ Language constraint: You MUST ask questions and provide feedback in {language}. 
 Ensure you have [Node.js](https://nodejs.org/) (version 18+) installed.
 
 ### 1. Install Dependencies
+
 Clone the repository and run:
+
 ```bash
 npm install
 ```
 
 ### 2. Start the Server
+
 Run the local Express development server:
+
 ```bash
 npm run dev
 ```
