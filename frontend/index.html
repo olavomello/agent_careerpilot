@@ -65,15 +65,13 @@
       <div class="control-section">
         <h3 id="lbl-customize-profile">Customize Profile</h3>
         
-        <div class="form-group">
-          <label for="select-profession" id="lbl-profession">Profession / Domain</label>
-          <select id="select-profession" onchange="onProfessionChange(this.value)">
-            <option value="Software Engineer" selected>Software Engineer</option>
-            <option value="UX Designer">UX Designer</option>
-            <option value="Nurse">Registered Nurse</option>
-            <option value="Sales Representative">Sales Representative</option>
-            <option value="Accountant">Accountant / Auditor</option>
-          </select>
+        <div class="form-group autocomplete-container">
+          <label for="input-profession" id="lbl-profession">Profession / Domain</label>
+          <div class="autocomplete-wrapper">
+            <input type="text" id="input-profession" value="Software Engineer" placeholder="Search or type profession..." oninput="onProfessionInput(this.value)" onfocus="showSuggestions()" autocomplete="off">
+            <button class="autocomplete-clear-btn" id="btn-clear-profession" onclick="clearProfessionInput()">×</button>
+            <div id="suggestions-list" class="suggestions-list hidden"></div>
+          </div>
         </div>
 
         <div class="form-group">
@@ -97,11 +95,15 @@
       </div>
     </aside>
 
+    <!-- Sidebar Overlay for mobile -->
+    <div id="sidebar-overlay" class="sidebar-overlay hidden" onclick="toggleSidebar()"></div>
+
     <!-- Main Navigation Content Area -->
     <main class="main-content">
       
       <!-- Top Navigation Tabs -->
       <header class="app-header glass-panel">
+        <button class="btn-menu-toggle" id="btn-menu-toggle" onclick="toggleSidebar()">☰</button>
         <nav class="tabs">
           <button class="tab-link active" onclick="switchTab('resume-tab')" id="tab-resume">Resume Scan</button>
           <button class="tab-link" onclick="switchTab('roadmap-tab')" id="tab-roadmap">Roadmap Pilot</button>

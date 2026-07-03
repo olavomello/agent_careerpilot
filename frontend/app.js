@@ -242,35 +242,33 @@ function setLanguage(lang) {
   // Switch drop-down value
   document.getElementById("select-lang").value = lang;
 
-  // Translate all UI Elements
+  // Translate all UI Elements (Only labels and static text, skipping user input elements)
   const translationDict = LOCALIZATION[lang];
   for (const [id, value] of Object.entries(translationDict)) {
     const el = document.getElementById(id);
     if (el) {
       if (el.tagName === 'INPUT' && el.type === 'text') {
-        // Don't overwrite active user values, unless they match defaults
-        const defaults = Object.values(LOCALIZATION).map(d => d.defaultTargetJobs[appState.profession]).filter(Boolean);
-        if (el.value === "" || defaults.includes(el.value)) {
-          el.value = translationDict.defaultTargetJobs[appState.profession] || "Senior Specialist";
-        }
+        // Skip user-edited input values to protect their typed custom text
       } else {
         el.textContent = value;
       }
     }
   }
 
-  // Update input text area placeholder
+  // Update input placeholders
   document.getElementById("textarea-resume").placeholder = lang === 'pt' ? "Cole seu currículo aqui..." : (lang === 'es' ? "Pegue su currículum aquí..." : "Paste your CV content here...");
   document.getElementById("input-chat-message").placeholder = translationDict.inputChatPlaceholder;
 
-  // Sync specific state configs
+  // Sync state configs with inputs
   appState.targetJob = document.getElementById("input-target-job").value;
+  appState.profession = document.getElementById("input-profession").value;
 
   // Close Language selection modal and open app
   document.getElementById("language-gatekeeper").classList.add("hidden");
   document.getElementById("app-container").classList.remove("hidden");
 
-  // Sync sample inputs and prompts
+  // Sync sample inputs (will only load defaults if unmodified) and update prompts
+  updateTargetJobInput();
   updateSampleResume();
   updatePromptsInspector();
   resetInterview();
@@ -279,6 +277,7 @@ function setLanguage(lang) {
 function changeLanguageFromDropdown(lang) {
   setLanguage(lang);
 }
+
 
 // Switches Tab view
 function switchTab(tabId) {
@@ -311,35 +310,62 @@ function switchTab(tabId) {
   }
 }
 
-// Adjust colors and sample resumes when changing professions
+// Helper: Map arbitrary professions to core domain HSL themes
+function mapProfessionToDomainTheme(profValue) {
+  const p = (profValue || "").toLowerCase();
+  if (p.includes("nurse") || p.includes("doctor") || p.includes("therapist") || p.includes("medical") || p.includes("dentist") || p.includes("clinical") || p.includes("physician") || p.includes("surgeon")) {
+    return "theme-healthcare";
+  }
+  if (p.includes("engineer") || p.includes("developer") || p.includes("coder") || p.includes("tech") || p.includes("data analyst") || p.includes("programmer") || p.includes("sysadmin")) {
+    return "theme-tech";
+  }
+  if (p.includes("design") || p.includes("artist") || p.includes("creative") || p.includes("illustrator") || p.includes("copywriter") || p.includes("graphic") || p.includes("painter")) {
+    return "theme-design";
+  }
+  if (p.includes("sale") || p.includes("marketing") || p.includes("representative") || p.includes("account executive") || p.includes("consultant") || p.includes("recruiter") || p.includes("hr") || p.includes("manager") || p.includes("teacher") || p.includes("professor") || p.includes("associate")) {
+    return "theme-sales";
+  }
+  if (p.includes("accountant") || p.includes("finance") || p.includes("auditor") || p.includes("banker") || p.includes("analyst") || p.includes("cfo")) {
+    return "theme-finance";
+  }
+  return "theme-default";
+}
+
+// Adjust colors and inputs when changing professions
 function onProfessionChange(profValue) {
   appState.profession = profValue;
   
   // Set theme class on body to trigger HSL variable transitions
   const body = document.body;
   body.className = ''; // reset classes
+  body.classList.add(mapProfessionToDomainTheme(profValue));
 
-  if (profValue === "Software Engineer") {
-    body.classList.add("theme-tech");
-  } else if (profValue === "UX Designer") {
-    body.classList.add("theme-design");
-  } else if (profValue === "Nurse") {
-    body.classList.add("theme-healthcare");
-  } else if (profValue === "Sales Representative") {
-    body.classList.add("theme-sales");
-  } else if (profValue === "Accountant") {
-    body.classList.add("theme-finance");
-  } else {
-    body.classList.add("theme-default");
-  }
-
-  // Adjust default target job name based on language
-  const translationDict = LOCALIZATION[appState.language];
-  document.getElementById("input-target-job").value = translationDict.defaultTargetJobs[profValue] || "Manager";
+  // Update target job value only if it matches previous defaults
+  updateTargetJobInput();
 
   updateProfileConfig();
   updateSampleResume();
   resetInterview();
+}
+
+function updateTargetJobInput() {
+  const input = document.getElementById("input-target-job");
+  const currentValue = input.value.trim();
+
+  // Collect all default target jobs across all languages and professions to check if unmodified
+  const allDefaultTargetJobs = [];
+  Object.values(LOCALIZATION).forEach(langData => {
+    if (langData.defaultTargetJobs) {
+      Object.values(langData.defaultTargetJobs).forEach(val => {
+        allDefaultTargetJobs.push(val.trim());
+      });
+    }
+  });
+
+  if (currentValue === "" || allDefaultTargetJobs.includes(currentValue)) {
+    const translationDict = LOCALIZATION[appState.language];
+    input.value = translationDict.defaultTargetJobs[appState.profession] || "Senior Specialist";
+  }
 }
 
 function updateProfileConfig() {
@@ -349,13 +375,126 @@ function updateProfileConfig() {
   updatePromptsInspector();
 }
 
-// Populates Sample Resume details based on role and language
+// Populates Sample Resume details only if unmodified by candidate
 function updateSampleResume() {
-  const professionResumes = SAMPLE_RESUMES[appState.profession];
-  if (professionResumes) {
-    document.getElementById("textarea-resume").value = professionResumes[appState.language] || professionResumes.en;
+  const textarea = document.getElementById("textarea-resume");
+  const currentValue = textarea.value.trim();
+
+  // Gather all stock sample resumes across all professions and languages
+  const allPredefinedResumes = [];
+  Object.values(SAMPLE_RESUMES).forEach(profData => {
+    Object.values(profData).forEach(val => {
+      allPredefinedResumes.push(val.trim());
+    });
+  });
+
+  // Only load default sample if textarea is empty or holds unmodified sample resume
+  if (currentValue === "" || allPredefinedResumes.includes(currentValue)) {
+    const professionResumes = SAMPLE_RESUMES[appState.profession];
+    if (professionResumes) {
+      textarea.value = professionResumes[appState.language] || professionResumes.en;
+    } else {
+      // Generic resume fallback for user-defined custom categories
+      textarea.value = appState.language === 'pt' ? 
+        `Profissional na área de ${appState.profession}. Possui ampla experiência no setor executando funções estratégicas.` :
+        (appState.language === 'es' ? 
+        `Profesional en el sector de ${appState.profession}. Amplia experiencia desempeñando tareas estratégicas.` :
+        `Experienced professional in ${appState.profession} domain. Solid record of executing strategic operations.`);
+    }
   }
 }
+
+// Autocomplete suggestions list array
+const SUGGESTIONS = [
+  "Software Engineer", "Accountant", "Marketing Specialist", "Project Manager", 
+  "Sales Representative", "Customer Success Manager", "Graphic Designer", 
+  "UX Designer", "Product Manager", "HR Professional", "Data Analyst", 
+  "Teacher", "Nurse", "Doctor", "Lawyer", "Mechanical Engineer", 
+  "Civil Engineer", "Financial Analyst", "Business Consultant", "Retail Associate"
+];
+
+function showSuggestions() {
+  const list = document.getElementById("suggestions-list");
+  list.innerHTML = "";
+  list.classList.remove("hidden");
+
+  const val = document.getElementById("input-profession").value.trim().toLowerCase();
+  const filtered = val === "" 
+    ? SUGGESTIONS 
+    : SUGGESTIONS.filter(item => item.toLowerCase().includes(val));
+
+  if (filtered.length === 0) {
+    const div = document.createElement("div");
+    div.className = "suggestion-item";
+    div.style.color = "var(--text-muted)";
+    div.style.cursor = "default";
+    div.textContent = appState.language === 'pt' ? "Aperte Enter para usar customizado" : (appState.language === 'es' ? "Presione Enter para usar personalizado" : "Press Enter to use custom category");
+    list.appendChild(div);
+    return;
+  }
+
+  filtered.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "suggestion-item";
+    div.textContent = item;
+    // Use mousedown instead of click to prevent blur event from hiding suggestions early
+    div.onmousedown = (e) => {
+      e.preventDefault();
+      selectSuggestion(item);
+    };
+    list.appendChild(div);
+  });
+}
+
+function onProfessionInput(val) {
+  showSuggestions();
+  // Map dynamic theme immediately as user types
+  const body = document.body;
+  body.className = '';
+  body.classList.add(mapProfessionToDomainTheme(val));
+  
+  appState.profession = val;
+  updateProfileConfig();
+}
+
+function selectSuggestion(val) {
+  const input = document.getElementById("input-profession");
+  input.value = val;
+  document.getElementById("suggestions-list").classList.add("hidden");
+  onProfessionChange(val);
+}
+
+function clearProfessionInput() {
+  const input = document.getElementById("input-profession");
+  input.value = "";
+  input.focus();
+  showSuggestions();
+  onProfessionChange("");
+}
+
+// Collapsible Mobile Drawer Navigation
+function toggleSidebar() {
+  const sidebar = document.querySelector(".sidebar");
+  const overlay = document.getElementById("sidebar-overlay");
+  
+  if (sidebar.classList.contains("open")) {
+    sidebar.classList.remove("open");
+    overlay.classList.add("hidden");
+  } else {
+    sidebar.classList.add("open");
+    overlay.classList.remove("hidden");
+  }
+}
+
+// Document listener to close suggestions when clicking outside autocomplete
+document.addEventListener("mousedown", (e) => {
+  const wrapper = document.querySelector(".autocomplete-wrapper");
+  if (wrapper && !wrapper.contains(e.target)) {
+    const list = document.getElementById("suggestions-list");
+    if (list) list.classList.add("hidden");
+  }
+});
+
 
 // Calls API to display compiled prompts in prompt inspector
 async function updatePromptsInspector() {
