@@ -6,6 +6,8 @@ Unlike typical career assistants, CareerPilot AI does not assume a software engi
 
 [APP - Deployed at Vercel](https://agent-careerpilot.vercel.app/)
 
+[Medium article](https://olavomello.medium.com/from-concept-to-deployment-how-i-built-careerpilot-ai-as-a-one-person-business-and-why-ai-40f3d88da89a?postPublishedType=repub)
+
 ## Key Features
 
 1. **Language Gatekeeper (Multi-language Integration)**
