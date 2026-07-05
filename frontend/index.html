@@ -1,315 +1,523 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="CareerPilot AI - Universal AI Career Copilot designed for candidates of any industry, seniority, and career path.">
-  <title>CareerPilot AI — Universal Career Copilot</title>
-  <!-- Google Fonts: Outfit & Inter -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body class="theme-default">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="CareerPilot AI - Universal AI Career Copilot designed for candidates of any industry, seniority, and career path."
+    />
+    <title>CareerPilot AI — Universal Career Copilot</title>
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="theme-default">
+    <!-- Step 0: Language Gatekeeper Modal -->
+    <div id="language-gatekeeper" class="modal-overlay">
+      <div class="glass-card gatekeeper-card">
+        <div class="logo-area">
+          <div class="logo-icon">▲</div>
+          <h1>CareerPilot AI</h1>
+        </div>
+        <p class="gatekeeper-subtitle">
+          Select your language to begin customizing your career navigation
+        </p>
 
-  <!-- Step 0: Language Gatekeeper Modal -->
-  <div id="language-gatekeeper" class="modal-overlay">
-    <div class="glass-card gatekeeper-card">
-      <div class="logo-area">
-        <div class="logo-icon">▲</div>
-        <h1>CareerPilot AI</h1>
-      </div>
-      <p class="gatekeeper-subtitle">Select your language to begin customizing your career navigation</p>
-      
-      <div class="lang-options">
-        <button class="btn-lang" id="btn-lang-en" onclick="setLanguage('en')">
-          <span class="flag">🇺🇸</span>
-          <span class="lang-name">English</span>
-        </button>
-        <button class="btn-lang" id="btn-lang-pt" onclick="setLanguage('pt')">
-          <span class="flag">🇧🇷</span>
-          <span class="lang-name">Português</span>
-        </button>
-        <button class="btn-lang" id="btn-lang-es" onclick="setLanguage('es')">
-          <span class="flag">🇪🇸</span>
-          <span class="lang-name">Español</span>
-        </button>
+        <div class="lang-options">
+          <button class="btn-lang" id="btn-lang-en" onclick="setLanguage('en')">
+            <span class="flag">🇺🇸</span>
+            <span class="lang-name">English</span>
+          </button>
+          <button class="btn-lang" id="btn-lang-pt" onclick="setLanguage('pt')">
+            <span class="flag">🇧🇷</span>
+            <span class="lang-name">Português</span>
+          </button>
+          <button class="btn-lang" id="btn-lang-es" onclick="setLanguage('es')">
+            <span class="flag">🇪🇸</span>
+            <span class="lang-name">Español</span>
+          </button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Main Dashboard App Layout (hidden until language selected) -->
-  <div id="app-container" class="app-layout hidden">
-    
-    <!-- Sidebar Control Panel -->
-    <aside class="sidebar glass-panel">
-      <div class="logo-area">
-        <div class="logo-icon">▲</div>
-        <span class="logo-text">CareerPilot AI</span>
-      </div>
-
-      <!-- Language Selector (Header/Sidebar mini toggle) -->
-      <div class="mini-lang-selector">
-        <label id="lbl-language-selector">Language:</label>
-        <select id="select-lang" onchange="changeLanguageFromDropdown(this.value)">
-          <option value="en">🇺🇸 English</option>
-          <option value="pt">🇧🇷 Português</option>
-          <option value="es">🇪🇸 Español</option>
-        </select>
-      </div>
-
-      <hr class="divider">
-
-      <!-- Profile Customizer Form -->
-      <div class="control-section">
-        <h3 id="lbl-customize-profile">Customize Profile</h3>
-        
-        <div class="form-group autocomplete-container">
-          <label for="input-profession" id="lbl-profession">Profession / Domain</label>
-          <div class="autocomplete-wrapper">
-            <input type="text" id="input-profession" value="Software Engineer" placeholder="Search or type profession..." oninput="onProfessionInput(this.value)" onfocus="showSuggestions()" autocomplete="off">
-            <button class="autocomplete-clear-btn" id="btn-clear-profession" onclick="clearProfessionInput()">×</button>
-            <div id="suggestions-list" class="suggestions-list hidden"></div>
-          </div>
+    <!-- Main Dashboard App Layout (hidden until language selected) -->
+    <div id="app-container" class="app-layout hidden">
+      <!-- Sidebar Control Panel -->
+      <aside class="sidebar glass-panel">
+        <div class="logo-area">
+          <div class="logo-icon">▲</div>
+          <span class="logo-text">CareerPilot AI</span>
         </div>
 
-        <div class="form-group">
-          <label for="select-seniority" id="lbl-seniority">Seniority Level</label>
-          <select id="select-seniority" onchange="updateProfileConfig()">
-            <option value="Junior">Entry / Junior</option>
-            <option value="Mid-level" selected>Mid-level</option>
-            <option value="Senior">Senior Professional</option>
-            <option value="Executive">Executive / Director</option>
+        <!-- Language Selector (Header/Sidebar mini toggle) -->
+        <div class="mini-lang-selector">
+          <label id="lbl-language-selector">Language:</label>
+          <select
+            id="select-lang"
+            onchange="changeLanguageFromDropdown(this.value)"
+          >
+            <option value="en">🇺🇸 English</option>
+            <option value="pt">🇧🇷 Português</option>
+            <option value="es">🇪🇸 Español</option>
           </select>
         </div>
 
-        <div class="form-group">
-          <label for="input-target-job" id="lbl-target-job">Target Role</label>
-          <input type="text" id="input-target-job" value="Senior Architect" onchange="updateProfileConfig()">
-        </div>
-      </div>
+        <hr class="divider" />
 
-      <div class="sidebar-footer">
-        <p>AI Engine status: <span class="status-indicator online"></span> Online</p>
-      </div>
-    </aside>
+        <!-- Profile Customizer Form -->
+        <div class="control-section">
+          <h3 id="lbl-customize-profile">Customize Profile</h3>
 
-    <!-- Sidebar Overlay for mobile -->
-    <div id="sidebar-overlay" class="sidebar-overlay hidden" onclick="toggleSidebar()"></div>
-
-    <!-- Main Navigation Content Area -->
-    <main class="main-content">
-      
-      <!-- Top Navigation Tabs -->
-      <header class="app-header glass-panel">
-        <button class="btn-menu-toggle" id="btn-menu-toggle" onclick="toggleSidebar()">☰</button>
-        <nav class="tabs">
-          <button class="tab-link active" onclick="switchTab('resume-tab')" id="tab-resume">Resume Scan</button>
-          <button class="tab-link" onclick="switchTab('roadmap-tab')" id="tab-roadmap">Roadmap Pilot</button>
-          <button class="tab-link" onclick="switchTab('interview-tab')" id="tab-interview">Interview Pilot</button>
-          <button class="tab-link" onclick="switchTab('inspector-tab')" id="tab-inspector">AI Prompt Inspector</button>
-          <button class="tab-link" onclick="switchTab('settings-tab')" id="tab-settings">Settings</button>
-        </nav>
-        <span id="ai-mode-badge" class="mode-badge demo hidden" onclick="switchTab('settings-tab')" title="Configure your Anthropic API key in Settings">Demo Mode</span>
-      </header>
-
-      <!-- Panel: Resume Optimization Pilot -->
-      <section id="resume-tab" class="tab-panel active">
-        <div class="panel-header">
-          <h2 id="title-resume-pilot">Resume Optimization Pilot</h2>
-          <p id="desc-resume-pilot">Optimize and tailor your resume for your target position without developer-specific bias.</p>
-        </div>
-
-        <div class="grid-layout">
-          <!-- Input Area -->
-          <div class="glass-card flex-col" style="gap: 15px;">
-            <h3 id="lbl-paste-resume">Paste Current Profile / Resume</h3>
-            
-            <!-- File Drag and Drop Zone -->
-            <div class="file-upload-zone" id="file-dropzone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)" onclick="triggerFileSelect()">
-              <div class="upload-icon">📂</div>
-              <p id="lbl-upload-text">Drag & drop your resume file here or click to browse</p>
-              <span class="upload-formats" id="lbl-upload-formats">Supports PDF, DOCX, TXT, JSON</span>
-              <input type="file" id="input-resume-file" accept=".txt,.json,.pdf,.docx,.doc" style="display: none;" onchange="handleFileSelect(event)">
+          <div class="form-group autocomplete-container">
+            <label for="input-profession" id="lbl-profession"
+              >Profession / Domain</label
+            >
+            <div class="autocomplete-wrapper">
+              <input
+                type="text"
+                id="input-profession"
+                value="Software Engineer"
+                placeholder="Search or type profession..."
+                oninput="onProfessionInput(this.value)"
+                onfocus="showSuggestions()"
+                autocomplete="off"
+              />
+              <button
+                class="autocomplete-clear-btn"
+                id="btn-clear-profession"
+                onclick="clearProfessionInput()"
+              >
+                ×
+              </button>
+              <div id="suggestions-list" class="suggestions-list hidden"></div>
             </div>
-
-            <textarea id="textarea-resume" placeholder="Paste your CV content here..." style="height: 180px; margin-bottom: 10px;"></textarea>
-            <button class="btn btn-primary" id="btn-scan-resume" onclick="runResumeScan()">Scan Profile</button>
-          </div>
-
-          <!-- Evaluation Results -->
-          <div class="glass-card flex-col">
-            <h3 id="lbl-audit-report">Audit Report</h3>
-            <div id="resume-loading" class="spinner-container hidden">
-              <div class="spinner"></div>
-              <p id="lbl-analyzing-resume">Analyzing alignment with target role...</p>
-            </div>
-            
-            <div id="resume-results" class="results-container">
-              <!-- Score Circle -->
-              <div class="score-circle-wrapper">
-                <div class="score-circle">
-                  <span class="score-value" id="resume-score">--</span>
-                  <span class="score-lbl" id="lbl-score">Score</span>
-                </div>
-              </div>
-
-              <div class="feedback-groups">
-                <div class="feedback-group">
-                  <h4 id="lbl-strengths" class="text-success">Strengths Detected</h4>
-                  <ul id="resume-strengths">
-                    <li id="lbl-no-strengths">Submit your resume to evaluate.</li>
-                  </ul>
-                </div>
-
-                <div class="feedback-group">
-                  <h4 id="lbl-gaps" class="text-danger">Critical Gaps Found</h4>
-                  <ul id="resume-gaps">
-                    <li id="lbl-no-gaps">Submit your resume to evaluate.</li>
-                  </ul>
-                </div>
-
-                <div class="feedback-group">
-                  <h4 id="lbl-actionable-rec">Actionable Recommendation</h4>
-                  <p id="resume-recommendations">...</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Panel: Learning Roadmap Pilot -->
-      <section id="roadmap-tab" class="tab-panel">
-        <div class="panel-header">
-          <h2 id="title-roadmap-pilot">Custom Growth & Learning Roadmap</h2>
-          <p id="desc-roadmap-pilot">Personalized milestones built specifically around your target role's core competencies.</p>
-          <button class="btn btn-primary" id="btn-generate-roadmap" onclick="generateRoadmap()">Generate Roadmap</button>
-        </div>
-
-        <div id="roadmap-loading" class="spinner-container hidden">
-          <div class="spinner"></div>
-          <p id="lbl-generating-roadmap">Generating custom training milestones...</p>
-        </div>
-
-        <div id="roadmap-timeline" class="timeline">
-          <!-- Timeline phases generated dynamically -->
-          <div class="timeline-empty-state" id="lbl-timeline-empty">
-            Click 'Generate Roadmap' to compile your learning milestones.
-          </div>
-        </div>
-      </section>
-
-      <!-- Panel: Interview Pilot Simulation -->
-      <section id="interview-tab" class="tab-panel">
-        <div class="panel-header">
-          <h2 id="title-interview-pilot">AI Interactive Interview Pilot</h2>
-          <p id="desc-interview-pilot">Take part in a realistic, profession-specific simulation. Adapt the question depth and style by altering your seniority level.</p>
-        </div>
-
-        <div class="grid-layout interview-layout">
-          <!-- Chat box -->
-          <div class="glass-card chat-card">
-            <div class="chat-header">
-              <div class="interviewer-avatar">AI</div>
-              <div>
-                <h4 id="lbl-interviewer-name">AI Recruiter</h4>
-                <p id="lbl-interviewer-desc">Profession-specific Assessment Bot</p>
-              </div>
-            </div>
-
-            <div class="chat-messages" id="chat-messages">
-              <!-- Greeting and message stack goes here -->
-            </div>
-
-            <div class="chat-input-area">
-              <input type="text" id="input-chat-message" placeholder="Type your response here..." onkeypress="handleChatKeypress(event)">
-              <button class="btn btn-primary" id="btn-send-chat" onclick="sendChatMessage()">Send</button>
-            </div>
-          </div>
-
-          <!-- Real-time performance coaching feedback -->
-          <div class="glass-card flex-col">
-            <h3 id="lbl-interview-coaching">Simulated Evaluation</h3>
-            <div id="interview-feedback-placeholder" class="placeholder-text">
-              <p id="lbl-feedback-wait">Simulate an interview to get live analysis and comprehensive coaching reports.</p>
-            </div>
-            
-            <div id="interview-feedback-report" class="results-container hidden">
-              <div class="score-circle-wrapper">
-                <div class="score-circle">
-                  <span class="score-value" id="interview-score">--</span>
-                  <span class="score-lbl" id="lbl-interview-score-lbl">Rating</span>
-                </div>
-              </div>
-              <h4 id="lbl-coaching-feedback" style="margin-top: 20px;">Coaching Feedback</h4>
-              <p id="interview-feedback-text">...</p>
-              <button class="btn btn-secondary" style="margin-top: 15px;" onclick="resetInterview()" id="btn-reset-interview">Restart Interview</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Panel: AI Prompt Inspector -->
-      <section id="inspector-tab" class="tab-panel">
-        <div class="panel-header">
-          <h2 id="title-prompt-inspector">AI System Prompt & Context Inspector</h2>
-          <p id="desc-prompt-inspector">Observe how the AI system instructions adapt in real-time, removing technical bias for non-engineering domains.</p>
-        </div>
-
-        <div class="inspector-card glass-card">
-          <h3 id="lbl-active-system-instructions">Generated Interview System Instructions</h3>
-          <p class="instructor-note" id="lbl-inspector-note">This is the context sent to the LLM to run the Interview Pilot simulation.</p>
-          <pre class="prompt-preview" id="prompt-preview-system">...</pre>
-        </div>
-
-        <div class="inspector-card glass-card" style="margin-top: 20px;">
-          <h3 id="lbl-active-resume-instructions">Generated Resume Audit Prompt</h3>
-          <pre class="prompt-preview" id="prompt-preview-resume">...</pre>
-        </div>
-      </section>
-
-      <!-- Panel: Settings (Session / BYOK) -->
-      <section id="settings-tab" class="tab-panel">
-        <div class="panel-header">
-          <h2 id="title-settings">Settings</h2>
-          <p id="desc-settings">Manage your session data. Bring Your Own Key (BYOK): calls go straight from your browser to Anthropic.</p>
-        </div>
-
-        <div class="glass-card settings-card">
-          <h3 id="lbl-ai-connection">AI Connection (BYOK)</h3>
-          <p class="instructor-note" id="lbl-api-key-hint">Your key is kept only in this browser session (sessionStorage) and is sent directly to the Anthropic API. It never touches this application's server and is discarded when the tab closes.</p>
-
-          <div class="form-group">
-            <label for="input-api-key" id="lbl-api-key">Anthropic API Key</label>
-            <input type="password" id="input-api-key" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
           </div>
 
           <div class="form-group">
-            <label for="select-model" id="lbl-model">Model</label>
-            <select id="select-model">
-              <option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6 — recommended</option>
-              <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — faster / cheaper</option>
-              <option value="claude-opus-4-8">Claude Opus 4.8 — highest quality</option>
+            <label for="select-seniority" id="lbl-seniority"
+              >Seniority Level</label
+            >
+            <select id="select-seniority" onchange="updateProfileConfig()">
+              <option value="Junior">Entry / Junior</option>
+              <option value="Mid-level" selected>Mid-level</option>
+              <option value="Senior">Senior Professional</option>
+              <option value="Executive">Executive / Director</option>
             </select>
           </div>
 
-          <div class="settings-actions">
-            <button class="btn btn-primary" id="btn-save-settings" onclick="saveAiSettings()">Save</button>
-            <button class="btn btn-secondary" id="btn-clear-key" onclick="clearAiSettings()">Clear session key</button>
+          <div class="form-group">
+            <label for="input-target-job" id="lbl-target-job"
+              >Target Role</label
+            >
+            <input
+              type="text"
+              id="input-target-job"
+              value="Senior Architect"
+              onchange="updateProfileConfig()"
+            />
+          </div>
+        </div>
+
+        <div class="sidebar-footer">
+          <p>
+            AI Engine status:
+            <span id="ai-status-indicator"></span>
+          </p>
+        </div>
+      </aside>
+
+      <!-- Sidebar Overlay for mobile -->
+      <div
+        id="sidebar-overlay"
+        class="sidebar-overlay hidden"
+        onclick="toggleSidebar()"
+      ></div>
+
+      <!-- Main Navigation Content Area -->
+      <main class="main-content">
+        <!-- Top Navigation Tabs -->
+        <header class="app-header glass-panel">
+          <button
+            class="btn-menu-toggle"
+            id="btn-menu-toggle"
+            onclick="toggleSidebar()"
+          >
+            ☰
+          </button>
+          <nav class="tabs">
+            <button
+              class="tab-link active"
+              onclick="switchTab('resume-tab')"
+              id="tab-resume"
+            >
+              Resume Scan
+            </button>
+            <button
+              class="tab-link"
+              onclick="switchTab('roadmap-tab')"
+              id="tab-roadmap"
+            >
+              Roadmap Pilot
+            </button>
+            <button
+              class="tab-link"
+              onclick="switchTab('interview-tab')"
+              id="tab-interview"
+            >
+              Interview Pilot
+            </button>
+            <button
+              class="tab-link"
+              onclick="switchTab('inspector-tab')"
+              id="tab-inspector"
+            >
+              AI Prompt Inspector
+            </button>
+            <button
+              class="tab-link"
+              onclick="switchTab('settings-tab')"
+              id="tab-settings"
+            >
+              Settings
+            </button>
+          </nav>
+          <span
+            id="ai-mode-badge"
+            class="mode-badge demo hidden"
+            onclick="switchTab('settings-tab')"
+            title="Configure your Anthropic API key in Settings"
+            >Demo Mode</span
+          >
+        </header>
+
+        <!-- Panel: Resume Optimization Pilot -->
+        <section id="resume-tab" class="tab-panel active">
+          <div class="panel-header">
+            <h2 id="title-resume-pilot">Resume Optimization Pilot</h2>
+            <p id="desc-resume-pilot">
+              Optimize and tailor your resume for your target position without
+              developer-specific bias.
+            </p>
           </div>
 
-          <p class="settings-status" id="settings-status"></p>
-        </div>
-      </section>
+          <div class="grid-layout">
+            <!-- Input Area -->
+            <div class="glass-card flex-col" style="gap: 15px">
+              <h3 id="lbl-paste-resume">Paste Current Profile / Resume</h3>
 
-    </main>
-  </div>
+              <!-- File Drag and Drop Zone -->
+              <div
+                class="file-upload-zone"
+                id="file-dropzone"
+                ondragover="onDragOver(event)"
+                ondragleave="onDragLeave(event)"
+                ondrop="onDrop(event)"
+                onclick="triggerFileSelect()"
+              >
+                <div class="upload-icon">📂</div>
+                <p id="lbl-upload-text">
+                  Drag & drop your resume file here or click to browse
+                </p>
+                <span class="upload-formats" id="lbl-upload-formats"
+                  >Supports PDF, DOCX, TXT, JSON</span
+                >
+                <input
+                  type="file"
+                  id="input-resume-file"
+                  accept=".txt,.json,.pdf,.docx,.doc"
+                  style="display: none"
+                  onchange="handleFileSelect(event)"
+                />
+              </div>
 
-  <!-- Client-side document extraction (real resume parsing, no server upload) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-  <script src="app.js"></script>
-</body>
+              <textarea
+                id="textarea-resume"
+                placeholder="Paste your CV content here..."
+                style="height: 180px; margin-bottom: 10px"
+              ></textarea>
+              <button
+                class="btn btn-primary"
+                id="btn-scan-resume"
+                onclick="runResumeScan()"
+              >
+                Scan Profile
+              </button>
+            </div>
+
+            <!-- Evaluation Results -->
+            <div class="glass-card flex-col">
+              <h3 id="lbl-audit-report">Audit Report</h3>
+              <div id="resume-loading" class="spinner-container hidden">
+                <div class="spinner"></div>
+                <p id="lbl-analyzing-resume">
+                  Analyzing alignment with target role...
+                </p>
+              </div>
+
+              <div id="resume-results" class="results-container">
+                <!-- Score Circle -->
+                <div class="score-circle-wrapper">
+                  <div class="score-circle">
+                    <span class="score-value" id="resume-score">--</span>
+                    <span class="score-lbl" id="lbl-score">Score</span>
+                  </div>
+                </div>
+
+                <div class="feedback-groups">
+                  <div class="feedback-group">
+                    <h4 id="lbl-strengths" class="text-success">
+                      Strengths Detected
+                    </h4>
+                    <ul id="resume-strengths">
+                      <li id="lbl-no-strengths">
+                        Submit your resume to evaluate.
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div class="feedback-group">
+                    <h4 id="lbl-gaps" class="text-danger">
+                      Critical Gaps Found
+                    </h4>
+                    <ul id="resume-gaps">
+                      <li id="lbl-no-gaps">Submit your resume to evaluate.</li>
+                    </ul>
+                  </div>
+
+                  <div class="feedback-group">
+                    <h4 id="lbl-actionable-rec">Actionable Recommendation</h4>
+                    <p id="resume-recommendations">...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Panel: Learning Roadmap Pilot -->
+        <section id="roadmap-tab" class="tab-panel">
+          <div class="panel-header">
+            <h2 id="title-roadmap-pilot">Custom Growth & Learning Roadmap</h2>
+            <p id="desc-roadmap-pilot">
+              Personalized milestones built specifically around your target
+              role's core competencies.
+            </p>
+            <button
+              class="btn btn-primary"
+              id="btn-generate-roadmap"
+              onclick="generateRoadmap()"
+            >
+              Generate Roadmap
+            </button>
+          </div>
+
+          <div id="roadmap-loading" class="spinner-container hidden">
+            <div class="spinner"></div>
+            <p id="lbl-generating-roadmap">
+              Generating custom training milestones...
+            </p>
+          </div>
+
+          <div id="roadmap-timeline" class="timeline">
+            <!-- Timeline phases generated dynamically -->
+            <div class="timeline-empty-state" id="lbl-timeline-empty">
+              Click 'Generate Roadmap' to compile your learning milestones.
+            </div>
+          </div>
+        </section>
+
+        <!-- Panel: Interview Pilot Simulation -->
+        <section id="interview-tab" class="tab-panel">
+          <div class="panel-header">
+            <h2 id="title-interview-pilot">AI Interactive Interview Pilot</h2>
+            <p id="desc-interview-pilot">
+              Take part in a realistic, profession-specific simulation. Adapt
+              the question depth and style by altering your seniority level.
+            </p>
+          </div>
+
+          <div class="grid-layout interview-layout">
+            <!-- Chat box -->
+            <div class="glass-card chat-card">
+              <div class="chat-header">
+                <div class="interviewer-avatar">AI</div>
+                <div>
+                  <h4 id="lbl-interviewer-name">AI Recruiter</h4>
+                  <p id="lbl-interviewer-desc">
+                    Profession-specific Assessment Bot
+                  </p>
+                </div>
+              </div>
+
+              <div class="chat-messages" id="chat-messages">
+                <!-- Greeting and message stack goes here -->
+              </div>
+
+              <div class="chat-input-area">
+                <input
+                  type="text"
+                  id="input-chat-message"
+                  placeholder="Type your response here..."
+                  onkeypress="handleChatKeypress(event)"
+                />
+                <button
+                  class="btn btn-primary"
+                  id="btn-send-chat"
+                  onclick="sendChatMessage()"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+
+            <!-- Real-time performance coaching feedback -->
+            <div class="glass-card flex-col">
+              <h3 id="lbl-interview-coaching">Simulated Evaluation</h3>
+              <div id="interview-feedback-placeholder" class="placeholder-text">
+                <p id="lbl-feedback-wait">
+                  Simulate an interview to get live analysis and comprehensive
+                  coaching reports.
+                </p>
+              </div>
+
+              <div
+                id="interview-feedback-report"
+                class="results-container hidden"
+              >
+                <div class="score-circle-wrapper">
+                  <div class="score-circle">
+                    <span class="score-value" id="interview-score">--</span>
+                    <span class="score-lbl" id="lbl-interview-score-lbl"
+                      >Rating</span
+                    >
+                  </div>
+                </div>
+                <h4 id="lbl-coaching-feedback" style="margin-top: 20px">
+                  Coaching Feedback
+                </h4>
+                <p id="interview-feedback-text">...</p>
+                <button
+                  class="btn btn-secondary"
+                  style="margin-top: 15px"
+                  onclick="resetInterview()"
+                  id="btn-reset-interview"
+                >
+                  Restart Interview
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Panel: AI Prompt Inspector -->
+        <section id="inspector-tab" class="tab-panel">
+          <div class="panel-header">
+            <h2 id="title-prompt-inspector">
+              AI System Prompt & Context Inspector
+            </h2>
+            <p id="desc-prompt-inspector">
+              Observe how the AI system instructions adapt in real-time,
+              removing technical bias for non-engineering domains.
+            </p>
+          </div>
+
+          <div class="inspector-card glass-card">
+            <h3 id="lbl-active-system-instructions">
+              Generated Interview System Instructions
+            </h3>
+            <p class="instructor-note" id="lbl-inspector-note">
+              This is the context sent to the LLM to run the Interview Pilot
+              simulation.
+            </p>
+            <pre class="prompt-preview" id="prompt-preview-system">...</pre>
+          </div>
+
+          <div class="inspector-card glass-card" style="margin-top: 20px">
+            <h3 id="lbl-active-resume-instructions">
+              Generated Resume Audit Prompt
+            </h3>
+            <pre class="prompt-preview" id="prompt-preview-resume">...</pre>
+          </div>
+        </section>
+
+        <!-- Panel: Settings (Session / BYOK) -->
+        <section id="settings-tab" class="tab-panel">
+          <div class="panel-header">
+            <h2 id="title-settings">Settings</h2>
+            <p id="desc-settings">
+              Manage your session data. Bring Your Own Key (BYOK): calls go
+              straight from your browser to Anthropic.
+            </p>
+          </div>
+
+          <div class="glass-card settings-card">
+            <h3 id="lbl-ai-connection">AI Connection (BYOK)</h3>
+            <p class="instructor-note" id="lbl-api-key-hint">
+              Your key is kept only in this browser session (sessionStorage) and
+              is sent directly to the Anthropic API. It never touches this
+              application's server and is discarded when the tab closes.
+            </p>
+
+            <div class="form-group">
+              <label for="input-api-key" id="lbl-api-key"
+                >Anthropic API Key</label
+              >
+              <input
+                type="password"
+                id="input-api-key"
+                placeholder="sk-ant-..."
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="select-model" id="lbl-model">Model</label>
+              <select id="select-model">
+                <option value="claude-sonnet-4-6" selected>
+                  Claude Sonnet 4.6 — recommended
+                </option>
+                <option value="claude-haiku-4-5-20251001">
+                  Claude Haiku 4.5 — faster / cheaper
+                </option>
+                <option value="claude-opus-4-8">
+                  Claude Opus 4.8 — highest quality
+                </option>
+              </select>
+            </div>
+
+            <div class="settings-actions">
+              <button
+                class="btn btn-primary"
+                id="btn-save-settings"
+                onclick="saveAiSettings()"
+              >
+                Save
+              </button>
+              <button
+                class="btn btn-secondary"
+                id="btn-clear-key"
+                onclick="clearAiSettings()"
+              >
+                Clear session key
+              </button>
+            </div>
+
+            <p class="settings-status" id="settings-status"></p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Client-side document extraction (real resume parsing, no server upload) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="app.js"></script>
+  </body>
 </html>

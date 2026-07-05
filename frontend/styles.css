@@ -322,6 +322,12 @@ h1, h2, h3, h4 {
 .status-indicator.online {
   background-color: var(--success-color);
   box-shadow: 0 0 8px var(--success-color);
+  margin-left:5px;
+}
+.status-indicator.offline {
+  background-color: var(--danger-color);
+  box-shadow: 0 0 8px var(--danger-color);
+  margin-left:5px;
 }
 
 /* Main Content */
